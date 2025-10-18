@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <title>Gestión de pedidos - Hamburguesería</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        form { margin-bottom: 16px; background:#f7f7f7; padding:12px; border-radius:6px; }
+        label { display:inline-block; width:120px; margin-bottom:8px; }
+        input[type="number"] { width:80px; }
+        table { width:100%; border-collapse:collapse; margin-top:8px; }
+        th, td { border:1px solid #ddd; padding:8px; text-align:center; }
+        th { background:#eee; }
+        .actions button { margin:0 4px; }
+        .summary { margin-top:12px; }
+    </style>
+</head>
+<body>
+    <h1>Pedidos - Hamburguesería</h1>
+
+    <form id="orderForm">
+        <input type="hidden" id="orderId">
+        <div>
+            <label for="cliente">Cliente:</label>
+            <input id="cliente" type="text" placeholder="Nombre o mesa" required>
+        </div>
+        <div>
+            <label for="sencilla">Sencilla (cantidad):</label>
+            <input id="sencilla" type="number" min="0" value="0" required>
+        </div>
+        <div>
+            <label for="doble">Doble carne (cantidad):</label>
+            <input id="doble" type="number" min="0" value="0" required>
+        </div>
+        <div>
+            <label for="mixta">Mixta (cantidad):</label>
+            <input id="mixta" type="number" min="0" value="0" required>
+        </div>
+        <div style="margin-top:8px;">
+            <button type="submit" id="submitBtn">Agregar pedido</button>
+            <button type="button" id="cancelEdit" style="display:none;">Cancelar</button>
+        </div>
+    </form>
+
+    <table id="ordersTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Cliente</th>
+                <th>Sencilla</th>
+                <th>Doble</th>
+                <th>Mixta</th>
+                <th>Total items</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <div class="summary" id="summary"></div>
+
+    <script>
+        // Precios por unidad (puedes ajustar)
+        const PRICES = { sencilla: 50, doble: 80, mixta: 65 };
+
+        const form = document.getElementById('orderForm');
+        const clienteInput = document.getElementById('cliente');
+        const sencillaInput = document.getElementById('sencilla');
+        const dobleInput = document.getElementById('doble');
+        const mixtaInput = document.getElementById('mixta');
+        const orderIdInput = document.getElementById('orderId');
+        const submitBtn = document.getElementById('submitBtn');
+        const cancelBtn = document.getElementById('cancelEdit');
+        const tbody = document.querySelector('#ordersTable tbody');
+        const summary = document.getElementById('summary');
+
+        let orders = JSON.parse(localStorage.getItem('hamburguesa_orders') || '[]');
+
+        function save() {
+            localStorage.setItem('hamburguesa_orders', JSON.stringify(orders));
+        }
+
+        function validateNumbers(...nums) {
+            return nums.every(n => Number.isInteger(n) && n >= 0);
+        }
+
+        function computeTotalItems(o) {
+            return o.sencilla + o.doble + o.mixta;
+        }
+
+        function render() {
+            tbody.innerHTML = '';
+            let totalPedidos = orders.length;
+            let totalItems = 0;
+
+            orders.forEach(o => {
+                const tr = document.createElement('tr');
+                totalItems += computeTotalItems(o);
+
+                tr.innerHTML = `
+                    <td>${o.id}</td>
+                    <td>${escapeHtml(o.cliente)}</td>
+                    <td>${o.sencilla}</td>
+                    <td>${o.doble}</td>
+                    <td>${o.mixta}</td>
+                    <td>${computeTotalItems(o)}</td>
+                    <td class="actions">
+                        <button data-id="${o.id}" class="edit">Editar</button>
+                        <button data-id="${o.id}" class="delete">Eliminar</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            summary.innerHTML = 
+                '<strong>Resumen:</strong> Pedidos: ' + totalPedidos +
+                ' — Total de items: ' + totalItems +
+                ' — Ingreso estimado: $' + orders.reduce((acc,o) => acc + (o.sencilla*PRICES.sencilla + o.doble*PRICES.doble + o.mixta*PRICES.mixta), 0);
+
+            // attach events
+            tbody.querySelectorAll('.edit').forEach(b => b.addEventListener('click', () => startEdit(b.dataset.id)));
+            tbody.querySelectorAll('.delete').forEach(b => b.addEventListener('click', () => removeOrder(b.dataset.id)));
+        }
+
+        function escapeHtml(text) {
+            return (text + '').replace(/[&<>"'`=\/]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','=':'&#x3D;','`':'&#x60;'}[s]));
+        }
+
+        function addOrder(o) {
+            orders.push(o);
+            save();
+            render();
+        }
+
+        function updateOrder(updated) {
+            orders = orders.map(o => o.id === updated.id ? updated : o);
+            save();
+            render();
+        }
+
+        function removeOrder(id) {
+            if (!confirm('Eliminar pedido ' + id + '?')) return;
+            orders = orders.filter(o => o.id !== id);
+            save();
+            render();
+            resetForm();
+        }
+
+        function startEdit(id) {
+            const o = orders.find(x => x.id === id);
+            if (!o) return;
+            orderIdInput.value = o.id;
+            clienteInput.value = o.cliente;
+            sencillaInput.value = o.sencilla;
+            dobleInput.value = o.doble;
+            mixtaInput.value = o.mixta;
+            submitBtn.textContent = 'Guardar cambios';
+            cancelBtn.style.display = 'inline';
+        }
+
+        function resetForm() {
+            orderIdInput.value = '';
+            clienteInput.value = '';
+            sencillaInput.value = '0';
+            dobleInput.value = '0';
+            mixtaInput.value = '0';
+            submitBtn.textContent = 'Agregar pedido';
+            cancelBtn.style.display = 'none';
+        }
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const cliente = clienteInput.value.trim() || 'Sin nombre';
+            const sencilla = parseInt(sencillaInput.value, 10);
+            const doble = parseInt(dobleInput.value, 10);
+            const mixta = parseInt(mixtaInput.value, 10);
+
+            if (!validateNumbers(sencilla, doble, mixta)) {
+                alert('Las cantidades deben ser números enteros no negativos.');
+                return;
+            }
+
+            const id = orderIdInput.value;
+            if (id) {
+                updateOrder({ id, cliente, sencilla, doble, mixta });
+            } else {
+                const newId = 'P' + Date.now().toString(36).toUpperCase().slice(-6);
+                addOrder({ id: newId, cliente, sencilla, doble, mixta });
+            }
+            resetForm();
+        });
+
+        cancelBtn.addEventListener('click', resetForm);
+
+        // inicializar
+        render();
+    </script>
+</body>
+</html>
