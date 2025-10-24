@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Envíos</title>
+    <style>
+        body{
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .encabezado{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .contenedor-form{
+            margin-top: 20px;
+            width: 400px;
+        }
+        label{
+            font-weight: bold;
+        }
+        input, textarea{
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        button{
+            margin-right: 10px;
+        }
+        .lista-envios{
+            margin-top: 20px;
+        }
+        .envio{
+            background: #f2f2f2;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="encabezado">
+        <h2>Super Envíos de Colombia</h2>
+        <h4>Trabajas en la Mejor Empresa de Envío de toda Colombia</h4>
+    </div>
+
+    <div class="contenedor-form">
+        <label>Destinatario:</label>
+        <input type="text" id="destinatario" placeholder="Ingrese el destinatario">
+
+        <label>Dirección de envío:</label>
+        <input type="text" id="direccion" placeholder="Ingrese la dirección">
+
+        <label>Descripción:</label>
+        <textarea id="descripcion" placeholder="Descripción del envío"></textarea>
+
+        <button onclick="agregarEnvio()">Agregar Envío</button>
+        <button onclick="limpiar()">Limpiar</button>
+    </div>
+
+    <div class="lista-envios" id="listaEnvios">
+        <!-- Aquí se agregarán los envíos -->
+    </div>
+
+    <script>
+        function agregarEnvio(){
+            const destinatario = document.getElementById("destinatario").value;
+            const direccion = document.getElementById("direccion").value;
+            const descripcion = document.getElementById("descripcion").value;
+
+            if(destinatario === "" || direccion === "" || descripcion === ""){
+                alert("Por favor complete todos los campos antes de agregar.");
+                return;
+            }
+
+            const contenedor = document.getElementById("listaEnvios");
+            const divEnvio = document.createElement("div");
+            divEnvio.className = "envio";
+            divEnvio.innerHTML = `<strong>Destinatario:</strong> ${destinatario}<br>
+                                  <strong>Dirección:</strong> ${direccion}<br>
+                                  <strong>Descripción:</strong> ${descripcion}`;
+            contenedor.appendChild(divEnvio);
+
+            limpiar();
+        }
+
+        function limpiar(){
+            document.getElementById("destinatario").value = "";
+            document.getElementById("direccion").value = "";
+            document.getElementById("descripcion").value = "";
+        }
+    </script>
+</body>
+</html>
+
